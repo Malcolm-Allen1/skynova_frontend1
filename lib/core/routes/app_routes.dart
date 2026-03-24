@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:skynova_frontend1/dashboard/main_dashboard.dart';
 
 import '../../models/search_model.dart';
 import '../../pages/auth/login_page.dart';
 import '../../pages/auth/register_page.dart';
-import '../../pages/dashboard/main_dashboard.dart';
 import '../../pages/features/search_detail_page.dart';
 
 class AppRoutes {

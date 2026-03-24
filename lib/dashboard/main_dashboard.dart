@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:skynova_frontend1/pages/features/alerts_page.dart';
+import 'package:skynova_frontend1/pages/features/home_page.dart';
+import 'package:skynova_frontend1/pages/features/profile_page.dart';
 import 'package:skynova_frontend1/pages/searches/saved_searches_page.dart';
 
 
@@ -13,10 +16,10 @@ class _MainDashboardState extends State<MainDashboard> {
   int _index = 0;
 
   final List<Widget> _pages = const [
-    Center(child: Text('Home')),
+    HomePage(),
     SavedSearchesPage(),
-    Center(child: Text('Alerts')),
-    Center(child: Text('Profile')),
+    AlertsPage(),
+    ProfilePage(),
   ];
 
   @override

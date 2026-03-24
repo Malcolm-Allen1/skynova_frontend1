@@ -15,17 +15,50 @@ class SavedSearchesPage extends StatefulWidget {
 }
 
 class _SavedSearchesPageState extends State<SavedSearchesPage> {
+  bool _hasTriedInitialLoad = false;
+  bool _isLoadingSearches = false;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => _loadSearches());
+    Future.microtask(() => _tryInitialLoad());
+  }
+
+  Future<void> _tryInitialLoad() async {
+    if (!mounted || _hasTriedInitialLoad) return;
+
+    final authProvider = context.read<AuthProvider>();
+
+    // If auth/session is still loading, wait until build runs again.
+    if (authProvider.isCheckingSession) return;
+
+    _hasTriedInitialLoad = true;
+    await _loadSearches();
   }
 
   Future<void> _loadSearches() async {
-    final token = context.read<AuthProvider>().token;
-    if (token != null && token.isNotEmpty) {
+    if (!mounted || _isLoadingSearches) return;
+
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+
+    if (authProvider.isCheckingSession) return;
+    if (token == null || token.isEmpty) return;
+
+    _isLoadingSearches = true;
+
+    try {
       await context.read<SearchProvider>().fetchSearches(token);
+    } catch (e) {
+      debugPrint('Error loading searches: $e');
+    } finally {
+      _isLoadingSearches = false;
     }
+  }
+
+  Future<void> _refreshSearches() async {
+    _hasTriedInitialLoad = true;
+    await _loadSearches();
   }
 
   Future<void> _openSearchForm({dynamic search}) async {
@@ -37,7 +70,7 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
     );
 
     if (!mounted) return;
-    await _loadSearches();
+    await _refreshSearches();
   }
 
   Future<void> _deleteSearch(int searchId) async {
@@ -83,62 +116,125 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
         ),
       ),
     );
+
+    if (success) {
+      await _refreshSearches();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<AuthProvider>();
     final searchProvider = context.watch<SearchProvider>();
 
+    // When auth finishes, try initial load once.
+    if (!authProvider.isCheckingSession &&
+        !_hasTriedInitialLoad &&
+        !_isLoadingSearches) {
+      Future.microtask(() => _tryInitialLoad());
+    }
+
+    // While checking session, show loader.
+    if (authProvider.isCheckingSession) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    // If no token, user is not logged in.
+    if (authProvider.token == null || authProvider.token!.isEmpty) {
+      return Scaffold(
+        body: RefreshIndicator(
+          onRefresh: _refreshSearches,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            children: const [
+              SizedBox(height: 140),
+              Icon(
+                Icons.lock_outline,
+                size: 72,
+                color: Colors.grey,
+              ),
+              SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'You are not logged in',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              SizedBox(height: 8),
+              Center(
+                child: Text(
+                  'Please log in to view your saved searches.',
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     if (searchProvider.isLoading && searchProvider.searches.isEmpty) {
-      return const Center(
-        child: CircularProgressIndicator(),
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
       );
     }
 
     if (searchProvider.error != null && searchProvider.searches.isEmpty) {
-      return RefreshIndicator(
-        onRefresh: _loadSearches,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(24),
-          children: [
-            const SizedBox(height: 120),
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey.shade500,
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Something went wrong',
-                style: Theme.of(context).textTheme.titleMedium,
+      return Scaffold(
+        body: RefreshIndicator(
+          onRefresh: _refreshSearches,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(24),
+            children: [
+              const SizedBox(height: 120),
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.grey.shade500,
               ),
-            ),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(
-                searchProvider.error!,
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.grey.shade700),
+              const SizedBox(height: 16),
+              Center(
+                child: Text(
+                  'Something went wrong',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _loadSearches,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Try Again'),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  searchProvider.error!,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade700),
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _refreshSearches,
+                  icon: const Icon(Icons.refresh),
+                  label: const Text('Try Again'),
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     return Scaffold(
       body: RefreshIndicator(
-        onRefresh: _loadSearches,
+        onRefresh: _refreshSearches,
         child: searchProvider.searches.isEmpty
             ? ListView(
                 physics: const AlwaysScrollableScrollPhysics(),

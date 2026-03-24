@@ -1,41 +1,69 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryColor = Color(0xFF0C7D69);
-  static const Color accentColor = Color(0xFFEAF7F3);
-  static const Color cardColor = Colors.white;
-  static const Color textDark = Color(0xFF1A1A1A);
+  static ThemeData light(Color seed) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.light,
+    );
 
-  static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: const Color(0xFFF7F9FB),
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryColor,
-        primary: primaryColor,
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: Colors.transparent,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: const Color(0xFFF7F8FA),
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
         elevation: 0,
-        centerTitle: false,
-        foregroundColor: textDark,
       ),
       cardTheme: CardThemeData(
-        color: cardColor,
-        elevation: 2,
+        color: Colors.white,
+        elevation: 0,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-        ),
-      ),
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(18),
-          borderSide: BorderSide.none,
+          borderRadius: BorderRadius.circular(22),
         ),
       ),
     );
+  }
+
+  static ThemeData dark(Color seed) {
+    final scheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: Brightness.dark,
+    );
+
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: scheme,
+      appBarTheme: AppBarTheme(
+        centerTitle: true,
+        backgroundColor: scheme.surface,
+        foregroundColor: scheme.onSurface,
+        elevation: 0,
+      ),
+      cardTheme: CardThemeData(
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(22),
+        ),
+      ),
+    );
+  }
+
+  static Color seedFromKey(String key) {
+    switch (key) {
+      case 'blue':
+        return Colors.blue;
+      case 'purple':
+        return Colors.deepPurple;
+      case 'orange':
+        return Colors.orange;
+      case 'green':
+        return Colors.green;
+      case 'mint':
+      default:
+        return const Color(0xFF70C9B0);
+    }
   }
 }

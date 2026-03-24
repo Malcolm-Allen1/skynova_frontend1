@@ -12,10 +12,7 @@ import '../../widgets/receipt_upload_card.dart';
 class SearchDetailPage extends StatefulWidget {
   final SearchModel search;
 
-  const SearchDetailPage({
-    super.key,
-    required this.search,
-  });
+  const SearchDetailPage({super.key, required this.search});
 
   @override
   State<SearchDetailPage> createState() => _SearchDetailPageState();
@@ -31,8 +28,14 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
     Future.microtask(() {
       final token = context.read<AuthProvider>().token;
       if (token != null && token.isNotEmpty) {
-        context.read<AlertProvider>().fetchAlerts(token, widget.search.id);
-        context.read<AlertProvider>().fetchPriceHistory(token, widget.search.id);
+        context.read<AlertProvider>().fetchSearchAlerts(
+          token,
+          widget.search.id,
+        );
+        context.read<AlertProvider>().fetchPriceHistory(
+          token,
+          widget.search.id,
+        );
       }
     });
   }
@@ -49,8 +52,18 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
     try {
       final parsed = DateTime.parse(date);
       final monthNames = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+        'Jan',
+        'Feb',
+        'Mar',
+        'Apr',
+        'May',
+        'Jun',
+        'Jul',
+        'Aug',
+        'Sep',
+        'Oct',
+        'Nov',
+        'Dec',
       ];
       return '${monthNames[parsed.month - 1]} ${parsed.day}, ${parsed.year}';
     } catch (_) {
@@ -78,15 +91,22 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
       try {
         final parsed = DateTime.parse(price.capturedAt);
         final shortMonth = [
-          'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-          'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+          'Jan',
+          'Feb',
+          'Mar',
+          'Apr',
+          'May',
+          'Jun',
+          'Jul',
+          'Aug',
+          'Sep',
+          'Oct',
+          'Nov',
+          'Dec',
         ][parsed.month - 1];
         label = '$shortMonth ${parsed.day}';
       } catch (_) {}
-      return PricePoint(
-        price: price.price,
-        label: label,
-      );
+      return PricePoint(price: price.price, label: label);
     }).toList();
 
     return Scaffold(
@@ -97,7 +117,9 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
             pinned: true,
             stretch: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text('${widget.search.origin} → ${widget.search.destination}'),
+              title: Text(
+                '${widget.search.origin} → ${widget.search.destination}',
+              ),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -284,7 +306,9 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                                     );
 
                                     if (value == null || value <= 0) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
+                                      ScaffoldMessenger.of(
+                                        context,
+                                      ).showSnackBar(
                                         const SnackBar(
                                           content: Text('Enter a valid value'),
                                         ),
@@ -292,12 +316,13 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                                       return;
                                     }
 
-                                    final success = await alertProvider.createAlert(
-                                      token,
-                                      widget.search.id,
-                                      selectedRuleType,
-                                      value,
-                                    );
+                                    final success = await alertProvider
+                                        .createAlert(
+                                          token,
+                                          widget.search.id,
+                                          selectedRuleType,
+                                          value,
+                                        );
 
                                     if (!context.mounted) return;
 
@@ -306,7 +331,8 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                                         content: Text(
                                           success
                                               ? 'Alert created'
-                                              : (alertProvider.error ?? 'Failed to create alert'),
+                                              : (alertProvider.error ??
+                                                    'Failed to create alert'),
                                         ),
                                       ),
                                     );
@@ -355,9 +381,9 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                               ? null
                               : () {
                                   alertProvider.deleteAlert(
-                                    token,
-                                    alert.id,
-                                    widget.search.id,
+                                    token: token,
+                                    alertId: alert.id,
+                                    searchId: widget.search.id,
                                   );
                                 },
                         ),

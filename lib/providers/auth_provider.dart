@@ -9,27 +9,60 @@ class AuthProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isCheckingSession = true;
   String? _token;
+  String? _refreshToken;
   String? _error;
+  Map<String, dynamic>? _user;
 
   bool get isLoading => _isLoading;
   bool get isCheckingSession => _isCheckingSession;
   bool get isLoggedIn => _token != null && _token!.isNotEmpty;
   String? get token => _token;
+  String? get refreshToken => _refreshToken;
   String? get error => _error;
+  Map<String, dynamic>? get user => _user;
 
   Future<void> loadSession() async {
     _isCheckingSession = true;
+    _error = null;
     notifyListeners();
 
     try {
       _token = await _authService.getToken();
-    } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
-      _token = null;
-    }
+      _refreshToken = await _authService.getRefreshToken();
 
-    _isCheckingSession = false;
-    notifyListeners();
+      if (_token == null || _token!.isEmpty) {
+        _isCheckingSession = false;
+        notifyListeners();
+        return;
+      }
+
+      try {
+        final meResponse = await _apiService.getMe(_token!);
+        final userData = meResponse['data'];
+
+        if (userData is Map<String, dynamic>) {
+          _user = userData;
+        }
+      } catch (e) {
+        final refreshed = await tryRefreshToken();
+
+        if (refreshed) {
+          final meResponse = await _apiService.getMe(_token!);
+          final userData = meResponse['data'];
+
+          if (userData is Map<String, dynamic>) {
+            _user = userData;
+          }
+        } else {
+          await logout();
+        }
+      }
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isCheckingSession = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> login(String email, String password) async {
@@ -40,32 +73,84 @@ class AuthProvider extends ChangeNotifier {
 
       final response = await _apiService.login(email, password);
 
-      final token = response['data']?['accessToken'] ??
-          response['data']?['token'] ??
-          response['accessToken'] ??
-          response['token'];
+      final accessToken =
+          response['data']?['accessToken'] ?? response['data']?['token'];
+      final refreshToken = response['data']?['refreshToken'];
 
-      if (token == null || token.toString().isEmpty) {
-        throw Exception('No token returned from backend');
+      if (accessToken == null || accessToken.toString().isEmpty) {
+        _error = 'No access token returned';
+        return false;
       }
 
-      _token = token.toString();
+      _token = accessToken.toString();
+      _refreshToken = refreshToken?.toString();
+
+      final userData = response['data']?['user'];
+      if (userData is Map<String, dynamic>) {
+        _user = userData;
+      } else {
+        _user = null;
+      }
+
       await _authService.saveToken(_token!);
 
+      if (_refreshToken != null && _refreshToken!.isNotEmpty) {
+        await _authService.saveRefreshToken(_refreshToken!);
+      }
+
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      return false;
+    } finally {
       _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> tryRefreshToken() async {
+    try {
+      final storedRefreshToken = _refreshToken ?? await _authService.getRefreshToken();
+
+      if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
+        return false;
+      }
+
+      final response = await _apiService.refreshToken(storedRefreshToken);
+
+      final newAccessToken =
+          response['data']?['accessToken'] ?? response['data']?['token'];
+      final newRefreshToken = response['data']?['refreshToken'];
+
+      if (newAccessToken == null || newAccessToken.toString().isEmpty) {
+        return false;
+      }
+
+      _token = newAccessToken.toString();
+      await _authService.saveToken(_token!);
+
+      if (newRefreshToken != null && newRefreshToken.toString().isNotEmpty) {
+        _refreshToken = newRefreshToken.toString();
+        await _authService.saveRefreshToken(_refreshToken!);
+      }
+
       notifyListeners();
       return true;
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
-      _isLoading = false;
-      notifyListeners();
+      _error = e.toString();
       return false;
     }
   }
 
   Future<void> logout() async {
     _token = null;
+    _refreshToken = null;
+    _user = null;
+    _error = null;
+
     await _authService.clearToken();
+    await _authService.clearRefreshToken();
+
     notifyListeners();
   }
 }

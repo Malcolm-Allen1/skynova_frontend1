@@ -29,8 +29,14 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
     Future.microtask(() {
       final token = context.read<AuthProvider>().token;
       if (token != null && token.isNotEmpty) {
-        context.read<AlertProvider>().fetchAlerts(token, widget.search.id);
-        context.read<AlertProvider>().fetchPriceHistory(token, widget.search.id);
+        context.read<AlertProvider>().fetchSearchAlerts(
+              token,
+              widget.search.id,
+            );
+        context.read<AlertProvider>().fetchPriceHistory(
+              token,
+              widget.search.id,
+            );
       }
     });
   }
@@ -47,18 +53,8 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
     try {
       final parsed = DateTime.parse(date);
       final monthNames = [
-        'Jan',
-        'Feb',
-        'Mar',
-        'Apr',
-        'May',
-        'Jun',
-        'Jul',
-        'Aug',
-        'Sep',
-        'Oct',
-        'Nov',
-        'Dec',
+        'Jan','Feb','Mar','Apr','May','Jun',
+        'Jul','Aug','Sep','Oct','Nov','Dec',
       ];
       return '${monthNames[parsed.month - 1]} ${parsed.day}, ${parsed.year}';
     } catch (_) {
@@ -76,6 +72,7 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
     final alertProvider = context.watch<AlertProvider>();
     final authProvider = context.read<AuthProvider>();
     final token = authProvider.token;
+
     final imageUrl = getDestinationImage(widget.search.destination);
 
     return Scaffold(
@@ -84,11 +81,8 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
           SliverAppBar(
             expandedHeight: 280,
             pinned: true,
-            stretch: true,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
-                '${widget.search.origin} → ${widget.search.destination}',
-              ),
+              title: Text('${widget.search.origin} → ${widget.search.destination}'),
               background: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -106,31 +100,12 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                         ),
                       );
                     },
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return Container(
-                        color: Colors.blue.shade50,
-                        alignment: Alignment.center,
-                        child: const CircularProgressIndicator(),
-                      );
-                    },
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.black.withOpacity(0.15),
-                          Colors.black.withOpacity(0.50),
-                        ],
-                      ),
-                    ),
                   ),
                 ],
               ),
             ),
           ),
+
           SliverToBoxAdapter(
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
@@ -139,20 +114,10 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                 children: [
                   const Text(
                     'Tracked Route',
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Monitor this trip for price changes and future deal alerts.',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 18),
+
+                  const SizedBox(height: 20),
 
                   Row(
                     children: [
@@ -173,6 +138,7 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 12),
 
                   Row(
@@ -194,6 +160,7 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                       ),
                     ],
                   ),
+
                   const SizedBox(height: 12),
 
                   _InfoCard(
@@ -202,81 +169,13 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                     value: _formatBudget(),
                   ),
 
-                  const SizedBox(height: 28),
-
-                  const Text(
-                    'Receipt',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Icon(
-                          Icons.receipt_long_outlined,
-                          size: 52,
-                          color: Colors.blue.shade700,
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Upload booking receipt',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Attach a receipt or booking confirmation for this tracked route.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        ElevatedButton.icon(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Receipt upload will be connected next with image_picker.',
-                                ),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.upload),
-                          label: const Text('Upload Receipt'),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
 
                   const Text(
                     'Create Alert',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+
                   const SizedBox(height: 12),
 
                   Container(
@@ -284,21 +183,12 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
                     ),
                     child: Column(
                       children: [
                         DropdownButtonFormField<String>(
                           value: selectedRuleType,
-                          decoration: const InputDecoration(
-                            labelText: 'Rule Type',
-                          ),
+                          decoration: const InputDecoration(labelText: 'Rule Type'),
                           items: const [
                             DropdownMenuItem(
                               value: 'below_amount',
@@ -315,7 +205,9 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                             }
                           },
                         ),
+
                         const SizedBox(height: 12),
+
                         TextField(
                           controller: thresholdController,
                           keyboardType: TextInputType.number,
@@ -323,7 +215,9 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                             labelText: 'Threshold value',
                           ),
                         ),
+
                         const SizedBox(height: 14),
+
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
@@ -358,8 +252,7 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                                         content: Text(
                                           success
                                               ? 'Alert created'
-                                              : (alertProvider.error ??
-                                                  'Failed to create alert'),
+                                              : (alertProvider.error ?? 'Failed'),
                                         ),
                                       ),
                                     );
@@ -375,104 +268,46 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                     ),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 30),
 
                   const Text(
                     'Alerts',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
+
                   const SizedBox(height: 12),
 
-                  if (alertProvider.alerts.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Text('No alerts created yet'),
-                    )
+                  if (alertProvider.searchAlerts.isEmpty)
+                    const Text('No alerts created yet')
                   else
-                    ...alertProvider.alerts.map(
+                    ...alertProvider.searchAlerts.map(
                       (alert) => Padding(
                         padding: const EdgeInsets.only(bottom: 12),
                         child: AlertCard(
                           alert: alert,
                           onDelete: token == null
                               ? null
-                              : () {
-                                  alertProvider.deleteAlert(
-                                    token,
-                                    alert.id,
-                                    widget.search.id,
+                              : () async {
+                                  final success =
+                                      await alertProvider.deleteAlert(
+                                    token: token,
+                                    alertId: alert.id,
+                                    searchId: widget.search.id,
+                                  );
+
+                                  if (!context.mounted) return;
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        success
+                                            ? 'Alert deleted'
+                                            : (alertProvider.error ??
+                                                'Failed to delete'),
+                                      ),
+                                    ),
                                   );
                                 },
-                        ),
-                      ),
-                    ),
-
-                  const SizedBox(height: 28),
-
-                  const Text(
-                    'Price History',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  if (alertProvider.prices.isEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Text('No price history found'),
-                    )
-                  else
-                    ...alertProvider.prices.map(
-                      (price) => Card(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16,
-                            vertical: 8,
-                          ),
-                          leading: const CircleAvatar(
-                            child: Icon(Icons.show_chart),
-                          ),
-                          title: Text(
-                            '${widget.search.currency} ${price.price.toStringAsFixed(2)}',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          subtitle: Text(price.capturedAt),
-                          trailing: Text(price.source ?? 'Unknown'),
                         ),
                       ),
                     ),
@@ -504,35 +339,17 @@ class _InfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey.shade50,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade200),
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: const Color(0xFF1565C0)),
+          Icon(icon, color: Colors.blue),
           const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade600,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label),
+              Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
+            ],
           ),
         ],
       ),

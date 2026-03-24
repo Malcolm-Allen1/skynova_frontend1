@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/alert_model.dart';
 import '../models/price_model.dart';
 import '../services/api_service.dart';
@@ -6,41 +7,69 @@ import '../services/api_service.dart';
 class AlertProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
-  bool isLoading = false;
-  String? error;
-  List<AlertModel> alerts = [];
-  List<PriceModel> prices = [];
+  bool _isLoading = false;
+  String? _error;
 
-  Future<void> fetchAlerts(String token, int searchId) async {
+  List<AlertModel> _alerts = [];
+  List<AlertModel> _searchAlerts = [];
+  List<PriceModel> _prices = [];
+
+  bool get isLoading => _isLoading;
+  String? get error => _error;
+  List<AlertModel> get alerts => _alerts;
+  List<AlertModel> get searchAlerts => _searchAlerts;
+  List<PriceModel> get prices => _prices;
+
+  Future<void> fetchAlerts(String token) async {
     try {
-      isLoading = true;
-      error = null;
+      _isLoading = true;
+      _error = null;
       notifyListeners();
 
-      final response = await _apiService.getAlertsForSearch(token, searchId);
-      final data = response['data'] as List<dynamic>? ?? [];
-      alerts = data.map((e) => AlertModel.fromJson(e)).toList();
+      final response = await _apiService.getAlerts(token);
+      final List data = response['data'] ?? [];
+
+      _alerts = data.map((e) => AlertModel.fromJson(e)).toList();
     } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
+      _error = e.toString();
     } finally {
-      isLoading = false;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> fetchSearchAlerts(String token, int searchId) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+
+      final response = await _apiService.getAlertsBySearch(token, searchId);
+      final List data = response['data'] ?? [];
+
+      _searchAlerts = data.map((e) => AlertModel.fromJson(e)).toList();
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _isLoading = false;
       notifyListeners();
     }
   }
 
   Future<void> fetchPriceHistory(String token, int searchId) async {
     try {
-      isLoading = true;
-      error = null;
+      _isLoading = true;
+      _error = null;
       notifyListeners();
 
       final response = await _apiService.getPriceHistory(token, searchId);
-      final data = response['data'] as List<dynamic>? ?? [];
-      prices = data.map((e) => PriceModel.fromJson(e)).toList();
+      final List data = response['data'] ?? [];
+
+      _prices = data.map((e) => PriceModel.fromJson(e)).toList();
     } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
+      _error = e.toString();
     } finally {
-      isLoading = false;
+      _isLoading = false;
       notifyListeners();
     }
   }
@@ -49,36 +78,61 @@ class AlertProvider extends ChangeNotifier {
     String token,
     int searchId,
     String ruleType,
-    double thresholdValue,
+    double value,
   ) async {
     try {
-      isLoading = true;
-      error = null;
+      _isLoading = true;
+      _error = null;
       notifyListeners();
 
-      await _apiService.createAlert(token, searchId, ruleType, thresholdValue);
-      await fetchAlerts(token, searchId);
+      await _apiService.createAlert(token, searchId, ruleType, value);
+      await fetchSearchAlerts(token, searchId);
+      await fetchAlerts(token);
+
       return true;
     } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
-      isLoading = false;
+      _error = e.toString();
       notifyListeners();
       return false;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
   }
 
-  Future<void> deleteAlert(String token, int alertId, int searchId) async {
+  Future<bool> deleteAlert({
+    required String token,
+    required int alertId,
+    int? searchId,
+  }) async {
     try {
-      isLoading = true;
+      _isLoading = true;
+      _error = null;
       notifyListeners();
 
       await _apiService.deleteAlert(token, alertId);
-      await fetchAlerts(token, searchId);
+
+      _alerts.removeWhere((a) => a.id == alertId);
+
+      if (searchId != null) {
+        _searchAlerts.removeWhere((a) => a.id == alertId);
+      }
+
+      return true;
     } catch (e) {
-      error = e.toString().replaceFirst('Exception: ', '');
+      _error = e.toString();
+      notifyListeners();
+      return false;
     } finally {
-      isLoading = false;
+      _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void clearSearchData() {
+    _searchAlerts = [];
+    _prices = [];
+    _error = null;
+    notifyListeners();
   }
 }

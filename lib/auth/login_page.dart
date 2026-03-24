@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skynova_frontend1/core/routes/app_routes.dart';
-
-
-import '../../pages/dashboard/main_dashboard.dart';
+import 'package:skynova_frontend1/dashboard/main_dashboard.dart';
 import '../../providers/auth_provider.dart';
 
 class LoginPage extends StatefulWidget {
