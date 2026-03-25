@@ -31,7 +31,11 @@ class AlertProvider extends ChangeNotifier {
 
       _alerts = data.map((e) => AlertModel.fromJson(e)).toList();
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -49,7 +53,11 @@ class AlertProvider extends ChangeNotifier {
 
       _searchAlerts = data.map((e) => AlertModel.fromJson(e)).toList();
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -67,7 +75,11 @@ class AlertProvider extends ChangeNotifier {
 
       _prices = data.map((e) => PriceModel.fromJson(e)).toList();
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString();
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -91,7 +103,11 @@ class AlertProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString();
+      }
       notifyListeners();
       return false;
     } finally {
@@ -113,20 +129,40 @@ class AlertProvider extends ChangeNotifier {
       await _apiService.deleteAlert(token, alertId);
 
       _alerts.removeWhere((a) => a.id == alertId);
-
-      if (searchId != null) {
-        _searchAlerts.removeWhere((a) => a.id == alertId);
-      }
+      _searchAlerts.removeWhere((a) => a.id == alertId);
 
       return true;
     } catch (e) {
-      _error = e.toString();
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString();
+      }
       notifyListeners();
       return false;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  bool hasPriceDropped() {
+    if (_prices.length < 2) return false;
+
+    final latest = _prices.last.price;
+    final previous = _prices[_prices.length - 2].price;
+
+    return latest < previous;
+  }
+
+  double? latestPrice() {
+    if (_prices.isEmpty) return null;
+    return _prices.last.price;
+  }
+
+  double? previousPrice() {
+    if (_prices.length < 2) return null;
+    return _prices[_prices.length - 2].price;
   }
 
   void clearSearchData() {

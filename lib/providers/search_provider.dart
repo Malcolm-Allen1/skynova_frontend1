@@ -23,7 +23,11 @@ class SearchProvider extends ChangeNotifier {
 
       _searches = await _searchService.getSearches(token);
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString().replaceFirst('Exception: ', '');
+      }
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -57,7 +61,11 @@ class SearchProvider extends ChangeNotifier {
       await fetchSearches(token);
       return true;
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString().replaceFirst('Exception: ', '');
+      }
       notifyListeners();
       return false;
     } finally {
@@ -95,7 +103,11 @@ class SearchProvider extends ChangeNotifier {
       await fetchSearches(token);
       return true;
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString().replaceFirst('Exception: ', '');
+      }
       notifyListeners();
       return false;
     } finally {
@@ -121,7 +133,11 @@ class SearchProvider extends ChangeNotifier {
       await fetchSearches(token);
       return true;
     } catch (e) {
-      _error = e.toString().replaceFirst('Exception: ', '');
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        _error = 'Session expired. Please log in again.';
+      } else {
+        _error = e.toString().replaceFirst('Exception: ', '');
+      }
       notifyListeners();
       return false;
     } finally {

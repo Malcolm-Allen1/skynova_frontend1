@@ -7,9 +7,26 @@ class ApiService {
   Map<String, String> _headers({String? token}) {
     return {
       'Content-Type': 'application/json',
-      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty)
+        'Authorization': 'Bearer $token',
     };
   }
+
+  Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
+    final data = jsonDecode(response.body);
+
+    if (response.statusCode == 401) {
+      throw Exception('SESSION_EXPIRED');
+    }
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      return data;
+    } else {
+      throw Exception(data['message'] ?? 'Request failed');
+    }
+  }
+
+  // ================= AUTH =================
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
@@ -21,13 +38,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Login failed');
-    }
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> refreshToken(String refreshToken) async {
@@ -39,13 +50,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to refresh token');
-    }
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> getMe(String accessToken) async {
@@ -54,14 +59,57 @@ class ApiService {
       headers: _headers(token: accessToken),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to fetch user');
-    }
+    return _handleResponse(response);
   }
+
+  // ================= SEARCHES =================
+
+  Future<Map<String, dynamic>> getSearches(String token) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/searches'),
+      headers: _headers(token: token),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> createSearch(
+    String token,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/searches'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> updateSearch(
+    String token,
+    int searchId,
+    Map<String, dynamic> body,
+  ) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/searches/$searchId'),
+      headers: _headers(token: token),
+      body: jsonEncode(body),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> deleteSearch(String token, int searchId) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/searches/$searchId'),
+      headers: _headers(token: token),
+    );
+
+    return _handleResponse(response);
+  }
+
+  // ================= ALERTS =================
 
   Future<Map<String, dynamic>> getAlerts(String token) async {
     final response = await http.get(
@@ -69,43 +117,19 @@ class ApiService {
       headers: _headers(token: token),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to fetch alerts');
-    }
+    return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> getAlertsBySearch(String token, int searchId) async {
+  Future<Map<String, dynamic>> getAlertsBySearch(
+    String token,
+    int searchId,
+  ) async {
     final response = await http.get(
       Uri.parse('$baseUrl/alerts/searches/$searchId'),
       headers: _headers(token: token),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to fetch search alerts');
-    }
-  }
-
-  Future<Map<String, dynamic>> getPriceHistory(String token, int searchId) async {
-    final response = await http.get(
-      Uri.parse('$baseUrl/prices/searches/$searchId'),
-      headers: _headers(token: token),
-    );
-
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to fetch price history');
-    }
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> createAlert(
@@ -124,13 +148,7 @@ class ApiService {
       }),
     );
 
-    final data = jsonDecode(response.body);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to create alert');
-    }
+    return _handleResponse(response);
   }
 
   Future<Map<String, dynamic>> deleteAlert(String token, int alertId) async {
@@ -139,12 +157,41 @@ class ApiService {
       headers: _headers(token: token),
     );
 
-    final data = jsonDecode(response.body);
+    return _handleResponse(response);
+  }
 
-    if (response.statusCode == 200) {
-      return data;
-    } else {
-      throw Exception(data['message'] ?? 'Failed to delete alert');
-    }
+  // ================= PRICES =================
+
+  Future<Map<String, dynamic>> getPriceHistory(
+    String token,
+    int searchId,
+  ) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/prices/searches/$searchId'),
+      headers: _headers(token: token),
+    );
+
+    return _handleResponse(response);
+  }
+
+  Future<Map<String, dynamic>> addPriceHistory(
+    String token,
+    int searchId,
+    double price, {
+    String? source,
+    String? capturedAt,
+  }) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/prices/searches/$searchId'),
+      headers: _headers(token: token),
+      body: jsonEncode({
+        'price': price,
+        if (source != null && source.isNotEmpty) 'source': source,
+        if (capturedAt != null && capturedAt.isNotEmpty)
+          'captured_at': capturedAt,
+      }),
+    );
+
+    return _handleResponse(response);
   }
 }

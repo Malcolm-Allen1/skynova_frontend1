@@ -29,7 +29,6 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
 
     final authProvider = context.read<AuthProvider>();
 
-    // If auth/session is still loading, wait until build runs again.
     if (authProvider.isCheckingSession) return;
 
     _hasTriedInitialLoad = true;
@@ -60,18 +59,25 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
     _hasTriedInitialLoad = true;
     await _loadSearches();
   }
+Future<void> _openSearchForm({dynamic search}) async {
+  final token = context.read<AuthProvider>().token;
 
-  Future<void> _openSearchForm({dynamic search}) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SearchFormPage(search: search),
-      ),
-    );
+  await Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => SearchFormPage(search: search),
+    ),
+  );
 
-    if (!mounted) return;
-    await _refreshSearches();
+  if (!mounted) return;
+
+  // 🔥 FORCE RELOAD (important)
+  if (token != null && token.isNotEmpty) {
+    await context.read<SearchProvider>().fetchSearches(token);
   }
+
+  setState(() {}); // 🔥 force UI rebuild
+}
 
   Future<void> _deleteSearch(int searchId) async {
     final token = context.read<AuthProvider>().token;
@@ -106,13 +112,14 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
 
     if (!mounted) return;
 
+    final provider = context.read<SearchProvider>();
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           success
               ? 'Search deleted successfully'
-              : (context.read<SearchProvider>().error ??
-                  'Failed to delete search'),
+              : (provider.error ?? 'Failed to delete search'),
         ),
       ),
     );
@@ -127,14 +134,12 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
     final authProvider = context.watch<AuthProvider>();
     final searchProvider = context.watch<SearchProvider>();
 
-    // When auth finishes, try initial load once.
     if (!authProvider.isCheckingSession &&
         !_hasTriedInitialLoad &&
         !_isLoadingSearches) {
       Future.microtask(() => _tryInitialLoad());
     }
 
-    // While checking session, show loader.
     if (authProvider.isCheckingSession) {
       return const Scaffold(
         body: Center(
@@ -143,7 +148,6 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
       );
     }
 
-    // If no token, user is not logged in.
     if (authProvider.token == null || authProvider.token!.isEmpty) {
       return Scaffold(
         body: RefreshIndicator(
@@ -201,7 +205,7 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
               Icon(
                 Icons.error_outline,
                 size: 64,
-                color: Colors.grey.shade500,
+                color: Colors.grey,
               ),
               const SizedBox(height: 16),
               Center(
@@ -266,7 +270,7 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
                   const SizedBox(height: 10),
                   Center(
                     child: Text(
-                      'Create a travel search to start tracking flight deals and price changes.',
+                      'Create a travel search to start tracking flights and set alerts later from the search details page.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:skynova_frontend1/auth/login_page.dart';
-import 'package:skynova_frontend1/dashboard/main_dashboard.dart';
 import 'core/theme/app_theme.dart';
 import 'providers/alert_provider.dart';
 import 'providers/app_settings_provider.dart';

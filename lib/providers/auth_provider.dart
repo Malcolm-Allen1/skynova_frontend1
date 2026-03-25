@@ -20,6 +20,8 @@ class AuthProvider extends ChangeNotifier {
   String? get refreshToken => _refreshToken;
   String? get error => _error;
   Map<String, dynamic>? get user => _user;
+  String? get name =>
+      _user?['name']?.toString() ?? _user?['full_name']?.toString();
 
   Future<void> loadSession() async {
     _isCheckingSession = true;
@@ -65,6 +67,23 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  Future<void> loadUserProfile() async {
+    if (_token == null || _token!.isEmpty) return;
+
+    try {
+      final meResponse = await _apiService.getMe(_token!);
+      final userData = meResponse['data'];
+
+      if (userData is Map<String, dynamic>) {
+        _user = userData;
+        notifyListeners();
+      }
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+    }
+  }
+
   Future<bool> login(String email, String password) async {
     try {
       _isLoading = true;
@@ -98,6 +117,10 @@ class AuthProvider extends ChangeNotifier {
         await _authService.saveRefreshToken(_refreshToken!);
       }
 
+      if (_user == null) {
+        await loadUserProfile();
+      }
+
       return true;
     } catch (e) {
       _error = e.toString();
@@ -110,7 +133,8 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> tryRefreshToken() async {
     try {
-      final storedRefreshToken = _refreshToken ?? await _authService.getRefreshToken();
+      final storedRefreshToken =
+          _refreshToken ?? await _authService.getRefreshToken();
 
       if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
         return false;

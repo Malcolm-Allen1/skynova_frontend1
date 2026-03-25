@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/alert_provider.dart';
+import '../../providers/search_provider.dart';
+import '../searches/search_details_page.dart';
 
 class AlertsPage extends StatefulWidget {
   const AlertsPage({super.key});
@@ -91,6 +93,115 @@ class _AlertsPageState extends State<AlertsPage> {
     if (success) {
       await _refreshAlerts();
     }
+  }
+
+  String _formatRule(String ruleType) {
+    switch (ruleType) {
+      case 'below_amount':
+        return 'Below Amount';
+      case 'drop_percent':
+        return 'Drop Percent';
+      default:
+        return ruleType;
+    }
+  }
+
+  Future<void> _openSmartAddAlert() async {
+    final authProvider = context.read<AuthProvider>();
+    final token = authProvider.token;
+
+    if (token == null || token.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in first')),
+      );
+      return;
+    }
+
+    final searchProvider = context.read<SearchProvider>();
+
+    await searchProvider.fetchSearches(token);
+
+    if (!mounted) return;
+
+    final searches = searchProvider.searches;
+
+    if (searches.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Create a saved search first, then add an alert'),
+        ),
+      );
+      return;
+    }
+
+    if (searches.length == 1) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SearchDetailPage(search: searches.first),
+        ),
+      );
+
+      if (!mounted) return;
+      await _refreshAlerts();
+      return;
+    }
+
+    final selectedSearch = await showModalBottomSheet<dynamic>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Choose a search',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: searches.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final search = searches[index];
+                      return ListTile(
+                        leading: const Icon(Icons.travel_explore),
+                        title: Text('${search.origin} → ${search.destination}'),
+                        subtitle: Text(
+                          '${search.departDate ?? "No depart date"}'
+                          '${search.returnDate != null ? " • ${search.returnDate}" : ""}',
+                        ),
+                        onTap: () => Navigator.pop(context, search),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selectedSearch == null || !mounted) return;
+
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchDetailPage(search: selectedSearch),
+      ),
+    );
+
+    if (!mounted) return;
+    await _refreshAlerts();
   }
 
   @override
@@ -195,26 +306,12 @@ class _AlertsPageState extends State<AlertsPage> {
                           const SizedBox(height: 10),
                           Center(
                             child: Text(
-                              'Create price alerts so Skynova can notify you when flight deals match your target.',
+                              'Tap Add Alert to choose a saved search and set a price alert.',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey.shade700,
+                                color: Colors.grey,
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          Center(
-                            child: ElevatedButton.icon(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Connect this button to your Create Alert screen'),
-                                  ),
-                                );
-                              },
-                              icon: const Icon(Icons.add_alert),
-                              label: const Text('Create Alert'),
                             ),
                           ),
                         ],
@@ -283,7 +380,7 @@ class _AlertsPageState extends State<AlertsPage> {
                                 ),
                                 const SizedBox(height: 14),
                                 Text(
-                                  'Rule: ${alert.ruleType}',
+                                  'Rule: ${_formatRule(alert.ruleType)}',
                                   style: TextStyle(color: Colors.grey.shade700),
                                 ),
                                 const SizedBox(height: 6),
@@ -306,13 +403,7 @@ class _AlertsPageState extends State<AlertsPage> {
                       ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Connect this button to your Create Alert page'),
-            ),
-          );
-        },
+        onPressed: _openSmartAddAlert,
         icon: const Icon(Icons.add_alert),
         label: const Text('Add Alert'),
       ),
