@@ -7,7 +7,7 @@ import '../../providers/alert_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/alert_card.dart';
 import '../../widgets/price_chart.dart';
-import '../../widgets/receipt_upload_card.dart';
+
 
 class SearchDetailPage extends StatefulWidget {
   final SearchModel search;
@@ -285,7 +285,7 @@ class _SearchDetailPageState extends State<SearchDetailPage> {
                     ),
 
                   const SizedBox(height: 20),
-                  const ReceiptUploadCard(),
+              
                 ],
               ),
             ),

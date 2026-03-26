@@ -1,33 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:skynova_frontend1/dashboard/main_dashboard.dart';
+import 'package:skynova_frontend1/pages/features/alerts_page.dart';
+import 'package:skynova_frontend1/pages/searches/saved_searches_page.dart';
 
 import '../../models/search_model.dart';
 import '../../pages/auth/login_page.dart';
 import '../../pages/auth/register_page.dart';
 import '../../pages/features/search_detail_page.dart';
+import '../../pages/splash/splash_page.dart';
 
 class AppRoutes {
+  static const String splash = '/';
   static const String login = '/login';
   static const String register = '/register';
   static const String dashboard = '/dashboard';
   static const String searchDetail = '/search-detail';
+  static const String searches = '/searches';
+  static const String alerts = '/alerts';
 
   static Route<dynamic> onGenerateRoute(RouteSettings settings) {
     switch (settings.name) {
+      case splash:
+        return MaterialPageRoute(builder: (_) => const SplashPage());
+
       case login:
-        return MaterialPageRoute(
-          builder: (_) => const LoginPage(),
-        );
+        return MaterialPageRoute(builder: (_) => const LoginPage());
 
       case register:
-        return MaterialPageRoute(
-          builder: (_) => const RegisterPage(),
-        );
+        return MaterialPageRoute(builder: (_) => const RegisterPage());
 
       case dashboard:
-        return MaterialPageRoute(
-          builder: (_) => const MainDashboard(),
-        );
+        return MaterialPageRoute(builder: (_) => const MainDashboard());
 
       case searchDetail:
         final search = settings.arguments as SearchModel;
@@ -35,10 +38,14 @@ class AppRoutes {
           builder: (_) => SearchDetailPage(search: search),
         );
 
+      case searches:
+        return MaterialPageRoute(builder: (_) => const SavedSearchesPage());
+
+      case alerts:
+        return MaterialPageRoute(builder: (_) => const AlertsPage());
+
       default:
-        return MaterialPageRoute(
-          builder: (_) => const LoginPage(),
-        );
+        return MaterialPageRoute(builder: (_) => const SplashPage());
     }
   }
 }

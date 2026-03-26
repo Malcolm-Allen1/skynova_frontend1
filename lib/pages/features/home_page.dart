@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
+import 'package:skynova_frontend1/core/routes/app_routes.dart';
 import '../../providers/alert_provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/search_provider.dart';
@@ -60,49 +60,49 @@ class _HomePageState extends State<HomePage> {
             await authProvider.loadUserProfile();
           },
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
-            children: [
-              _buildHeader(context),
-              const SizedBox(height: 16),
-              _buildHeroCard(searches.length, alerts.length),
-              const SizedBox(height: 18),
-              _buildQuickStats(searches.length, alerts.length),
-              const SizedBox(height: 20),
-              _buildSectionTitle('Recent Searches'),
-              const SizedBox(height: 10),
+  padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
+  children: [
+    _buildHeader(context),
+    const SizedBox(height: 16),
+    _buildHeroCard(searches.length, alerts.length),
+    const SizedBox(height: 18),
+    _buildQuickStats(context, searches.length, alerts.length),
+    const SizedBox(height: 20),
+    _buildSectionTitle('Recent Searches'),
+    const SizedBox(height: 10),
 
-              if (searches.isEmpty)
-                _buildEmptyCard(
-                  icon: Icons.travel_explore,
-                  title: 'No searches yet',
-                  subtitle: 'Create your first trip search to start tracking deals.',
-                )
-              else
-                ...searches.take(4).map(
-                  (search) => _buildSearchCard(
-                    context: context,
-                    title: '${search.origin} → ${search.destination}',
-                    subtitle:
-                        '${_cleanDate(search.departDate)}${search.returnDate != null && search.returnDate!.isNotEmpty ? ' • ${_cleanDate(search.returnDate)}' : ''}',
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => SearchDetailPage(search: search),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-
-              const SizedBox(height: 20),
-              _buildSectionTitle('Travel Insights'),
-              const SizedBox(height: 10),
-              _buildInsightCard(alertProvider),
-            ],
-          ),
+    if (searches.isEmpty)
+      _buildEmptyCard(
+        icon: Icons.travel_explore,
+        title: 'No searches yet',
+        subtitle: 'Create your first trip search to start tracking deals.',
+      )
+    else
+      ...searches.take(4).map(
+        (search) => _buildSearchCard(
+          context: context,
+          title: '${search.origin} → ${search.destination}',
+          subtitle:
+              '${_cleanDate(search.departDate)}${search.returnDate != null && search.returnDate!.isNotEmpty ? ' • ${_cleanDate(search.returnDate)}' : ''}',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => SearchDetailPage(search: search),
+              ),
+            );
+          },
         ),
       ),
+
+    const SizedBox(height: 20),
+    _buildSectionTitle('Travel Insights'),
+    const SizedBox(height: 10),
+    _buildInsightCard(alertProvider),
+  ],
+),
+      ),
+    )
     );
   }
 
@@ -128,45 +128,51 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     ],
-  );
+  ); 
 }
-  Widget _buildHeroCard(int searchCount, int alertCount) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1565C0), Color(0xFF1E88E5)],
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Skynova Travel Tracker ✈️',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Track routes and monitor price drops.',
-            style: TextStyle(color: Colors.white70),
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _miniPill('$searchCount searches'),
-              const SizedBox(width: 8),
-              _miniPill('$alertCount alerts'),
-            ],
-          ),
+
+Widget _buildHeroCard(int searchCount, int alertCount) {
+  final colorScheme = Theme.of(context).colorScheme;
+
+  return Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        colors: [
+          colorScheme.primary,
+          colorScheme.primaryContainer,
         ],
       ),
-    );
-  }
+      borderRadius: BorderRadius.circular(20),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Skynova Travel Tracker ✈️',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Track routes and monitor price drops.',
+          style: TextStyle(color: Colors.white70),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _miniPill('$searchCount searches'),
+            const SizedBox(width: 8),
+            _miniPill('$alertCount alerts'),
+          ],
+        ),
+      ],
+    ),
+  );
+}  }
 
   Widget _miniPill(String text) {
     return Container(
@@ -181,41 +187,52 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+Widget _buildQuickStats(BuildContext context, int searchCount, int alertCount) {
+  return Row(
+    children: [
+      Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.pushNamed(context, AppRoutes.searches);
+          },
+          child: _statCard(context, Icons.search, '$searchCount', 'Searches'),
+        ),
+      ),
+      const SizedBox(width: 10),
+      Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.pushNamed(context, AppRoutes.alerts);
+          },
+          child: _statCard(context, Icons.notifications, '$alertCount', 'Alerts'),
+        ),
+      ),
+    ],
+  );
+}
 
-  Widget _buildQuickStats(int searchCount, int alertCount) {
-    return Row(
+ Widget _statCard(BuildContext context, IconData icon, String value, String label) {
+  return Container(
+    padding: const EdgeInsets.all(14),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerHighest,
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Column(
       children: [
-        Expanded(
-          child: _statCard(Icons.search, '$searchCount', 'Searches'),
+        Icon(icon),
+        const SizedBox(height: 6),
+        Text(
+          value,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ),
-        const SizedBox(width: 10),
-        Expanded(
-          child: _statCard(Icons.notifications, '$alertCount', 'Alerts'),
-        ),
+        Text(label),
       ],
-    );
-  }
-
-  Widget _statCard(IconData icon, String value, String label) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade100,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        children: [
-          Icon(icon),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          Text(label),
-        ],
-      ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -287,4 +304,3 @@ class _HomePageState extends State<HomePage> {
     if (value.contains('T')) return value.split('T').first;
     return value;
   }
-}

@@ -59,25 +59,25 @@ class _SavedSearchesPageState extends State<SavedSearchesPage> {
     _hasTriedInitialLoad = true;
     await _loadSearches();
   }
-Future<void> _openSearchForm({dynamic search}) async {
-  final token = context.read<AuthProvider>().token;
 
-  await Navigator.push(
-    context,
-    MaterialPageRoute(
-      builder: (_) => SearchFormPage(search: search),
-    ),
-  );
+  Future<void> _openSearchForm({dynamic search}) async {
+    final token = context.read<AuthProvider>().token;
 
-  if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => SearchFormPage(search: search),
+      ),
+    );
 
-  // 🔥 FORCE RELOAD (important)
-  if (token != null && token.isNotEmpty) {
-    await context.read<SearchProvider>().fetchSearches(token);
+    if (!mounted) return;
+
+    if (token != null && token.isNotEmpty) {
+      await context.read<SearchProvider>().fetchSearches(token);
+    }
+
+    setState(() {});
   }
-
-  setState(() {}); // 🔥 force UI rebuild
-}
 
   Future<void> _deleteSearch(int searchId) async {
     final token = context.read<AuthProvider>().token;
@@ -86,6 +86,9 @@ Future<void> _openSearchForm({dynamic search}) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
         title: const Text('Delete Search'),
         content: const Text(
           'Are you sure you want to delete this saved search?',
@@ -95,7 +98,7 @@ Future<void> _openSearchForm({dynamic search}) async {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
           ),
@@ -142,101 +145,53 @@ Future<void> _openSearchForm({dynamic search}) async {
 
     if (authProvider.isCheckingSession) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (authProvider.token == null || authProvider.token!.isEmpty) {
       return Scaffold(
-        body: RefreshIndicator(
-          onRefresh: _refreshSearches,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            children: const [
-              SizedBox(height: 140),
-              Icon(
-                Icons.lock_outline,
-                size: 72,
-                color: Colors.grey,
-              ),
-              SizedBox(height: 16),
-              Center(
-                child: Text(
-                  'You are not logged in',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              SizedBox(height: 8),
-              Center(
-                child: Text(
-                  'Please log in to view your saved searches.',
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            ],
-          ),
+        appBar: AppBar(
+          title: const Text('Saved Searches'),
+        ),
+        body: const Center(
+          child: Text('You are not logged in'),
         ),
       );
     }
 
     if (searchProvider.isLoading && searchProvider.searches.isEmpty) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
     if (searchProvider.error != null && searchProvider.searches.isEmpty) {
       return Scaffold(
-        body: RefreshIndicator(
-          onRefresh: _refreshSearches,
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 120),
-              Icon(
-                Icons.error_outline,
-                size: 64,
-                color: Colors.grey,
-              ),
-              const SizedBox(height: 16),
-              Center(
-                child: Text(
-                  'Something went wrong',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  searchProvider.error!,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.grey.shade700),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _refreshSearches,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Try Again'),
-                ),
-              ),
-            ],
-          ),
+        appBar: AppBar(
+          title: const Text('Saved Searches'),
+        ),
+        body: Center(
+          child: Text(searchProvider.error!),
         ),
       );
     }
 
     return Scaffold(
+      appBar: AppBar(
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: true,
+        title: const Text(
+          'Saved Searches',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        foregroundColor: Theme.of(context).colorScheme.onSurface,
+      ),
       body: RefreshIndicator(
         onRefresh: _refreshSearches,
         child: searchProvider.searches.isEmpty
@@ -245,18 +200,7 @@ Future<void> _openSearchForm({dynamic search}) async {
                 padding: const EdgeInsets.all(24),
                 children: [
                   const SizedBox(height: 100),
-                  Container(
-                    height: 160,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(
-                      Icons.travel_explore,
-                      size: 72,
-                      color: Color(0xFF1565C0),
-                    ),
-                  ),
+                  const Icon(Icons.travel_explore, size: 72),
                   const SizedBox(height: 24),
                   const Center(
                     child: Text(
@@ -268,28 +212,15 @@ Future<void> _openSearchForm({dynamic search}) async {
                     ),
                   ),
                   const SizedBox(height: 10),
-                  Center(
+                  const Center(
                     child: Text(
-                      'Create a travel search to start tracking flights and set alerts later from the search details page.',
+                      'Create a travel search to start tracking deals.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  Center(
-                    child: ElevatedButton.icon(
-                      onPressed: () => _openSearchForm(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('Create Search'),
                     ),
                   ),
                 ],
               )
             : ListView.builder(
-                physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
                 itemCount: searchProvider.searches.length,
                 itemBuilder: (context, index) {
@@ -300,7 +231,8 @@ Future<void> _openSearchForm({dynamic search}) async {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => SearchDetailPage(search: search),
+                          builder: (_) =>
+                              SearchDetailPage(search: search),
                         ),
                       );
                     },

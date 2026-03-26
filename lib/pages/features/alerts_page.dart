@@ -63,7 +63,7 @@ class _AlertsPageState extends State<AlertsPage> {
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
+          FilledButton(
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Delete'),
           ),
@@ -118,7 +118,6 @@ class _AlertsPageState extends State<AlertsPage> {
     }
 
     final searchProvider = context.read<SearchProvider>();
-
     await searchProvider.fetchSearches(token);
 
     if (!mounted) return;
@@ -151,16 +150,17 @@ class _AlertsPageState extends State<AlertsPage> {
       context: context,
       showDragHandle: true,
       builder: (context) {
+        final theme = Theme.of(context);
+
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
+                Text(
                   'Choose a search',
-                  style: TextStyle(
-                    fontSize: 18,
+                  style: theme.textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -169,15 +169,24 @@ class _AlertsPageState extends State<AlertsPage> {
                   child: ListView.separated(
                     shrinkWrap: true,
                     itemCount: searches.length,
-                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    separatorBuilder: (_, __) => Divider(
+                      height: 1,
+                      color: theme.colorScheme.outlineVariant,
+                    ),
                     itemBuilder: (context, index) {
                       final search = searches[index];
                       return ListTile(
-                        leading: const Icon(Icons.travel_explore),
+                        leading: Icon(
+                          Icons.travel_explore,
+                          color: theme.colorScheme.primary,
+                        ),
                         title: Text('${search.origin} → ${search.destination}'),
                         subtitle: Text(
                           '${search.departDate ?? "No depart date"}'
                           '${search.returnDate != null ? " • ${search.returnDate}" : ""}',
+                          style: TextStyle(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
                         ),
                         onTap: () => Navigator.pop(context, search),
                       );
@@ -206,6 +215,9 @@ class _AlertsPageState extends State<AlertsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
     final authProvider = context.watch<AuthProvider>();
     final alertProvider = context.watch<AlertProvider>();
 
@@ -245,14 +257,13 @@ class _AlertsPageState extends State<AlertsPage> {
                       Icon(
                         Icons.notifications_off_outlined,
                         size: 70,
-                        color: Colors.grey.shade500,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(height: 16),
-                      const Center(
+                      Center(
                         child: Text(
                           'Unable to load alerts',
-                          style: TextStyle(
-                            fontSize: 20,
+                          style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.bold,
                           ),
                         ),
@@ -262,12 +273,14 @@ class _AlertsPageState extends State<AlertsPage> {
                         child: Text(
                           alertProvider.error!,
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.grey.shade700),
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 20),
                       Center(
-                        child: ElevatedButton.icon(
+                        child: FilledButton.icon(
                           onPressed: _refreshAlerts,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Try Again'),
@@ -284,21 +297,20 @@ class _AlertsPageState extends State<AlertsPage> {
                           Container(
                             height: 170,
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade50,
+                              color: colorScheme.primaryContainer.withOpacity(0.35),
                               borderRadius: BorderRadius.circular(24),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.notifications_active_outlined,
                               size: 72,
-                              color: Colors.orange,
+                              color: colorScheme.primary,
                             ),
                           ),
                           const SizedBox(height: 24),
-                          const Center(
+                          Center(
                             child: Text(
                               'No alerts yet',
-                              style: TextStyle(
-                                fontSize: 22,
+                              style: theme.textTheme.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -310,7 +322,7 @@ class _AlertsPageState extends State<AlertsPage> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey,
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ),
@@ -327,7 +339,7 @@ class _AlertsPageState extends State<AlertsPage> {
                             margin: const EdgeInsets.only(bottom: 14),
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: Theme.of(context).cardColor,
+                              color: theme.cardColor,
                               borderRadius: BorderRadius.circular(20),
                               boxShadow: [
                                 BoxShadow(
@@ -345,20 +357,19 @@ class _AlertsPageState extends State<AlertsPage> {
                                     Container(
                                       padding: const EdgeInsets.all(10),
                                       decoration: BoxDecoration(
-                                        color: Colors.orange.shade100,
+                                        color: colorScheme.primaryContainer,
                                         borderRadius: BorderRadius.circular(14),
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.notifications_active,
-                                        color: Colors.orange,
+                                        color: colorScheme.primary,
                                       ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
                                         '${alert.origin} → ${alert.destination}',
-                                        style: const TextStyle(
-                                          fontSize: 17,
+                                        style: theme.textTheme.titleMedium?.copyWith(
                                           fontWeight: FontWeight.bold,
                                         ),
                                       ),
@@ -381,18 +392,24 @@ class _AlertsPageState extends State<AlertsPage> {
                                 const SizedBox(height: 14),
                                 Text(
                                   'Rule: ${_formatRule(alert.ruleType)}',
-                                  style: TextStyle(color: Colors.grey.shade700),
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   'Threshold: ${alert.thresholdValue}',
-                                  style: TextStyle(color: Colors.grey.shade700),
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                                 const SizedBox(height: 6),
                                 Text(
                                   'Status: ${alert.isActive ? "Active" : "Inactive"}',
                                   style: TextStyle(
-                                    color: alert.isActive ? Colors.green : Colors.red,
+                                    color: alert.isActive
+                                        ? colorScheme.primary
+                                        : colorScheme.error,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
