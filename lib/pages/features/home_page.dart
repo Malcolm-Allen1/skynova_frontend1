@@ -69,13 +69,10 @@ class _HomePageState extends State<HomePage> {
     final searches = searchProvider.searches;
     final alerts = alertProvider.alerts;
     final user = authProvider.user;
-
-    final fullName =
+    final displayName =
         user?['name']?.toString() ??
         user?['full_name']?.toString() ??
         'Traveler';
-
-    final displayName = fullName.split(' ').first;
 
     return Scaffold(
       body: RefreshIndicator(
