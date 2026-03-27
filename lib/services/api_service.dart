@@ -1,19 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../core/app_config.dart';
 
 class ApiService {
-  final String baseUrl = 'http://10.0.2.2:4000/api';
+  final String baseUrl = AppConfig.baseUrl;
 
   Map<String, String> _headers({String? token}) {
     return {
       'Content-Type': 'application/json',
-      if (token != null && token.isNotEmpty)
-        'Authorization': 'Bearer $token',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
     };
   }
 
   Future<Map<String, dynamic>> _handleResponse(http.Response response) async {
-    final data = jsonDecode(response.body);
+    final body = response.body.trim();
+    final data = body.isEmpty ? <String, dynamic>{} : jsonDecode(body) as Map<String, dynamic>;
 
     if (response.statusCode == 401) {
       throw Exception('SESSION_EXPIRED');
@@ -21,23 +22,17 @@ class ApiService {
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
-    } else {
-      throw Exception(data['message'] ?? 'Request failed');
     }
-  }
 
-  // ================= AUTH =================
+    throw Exception(data['message'] ?? 'Request failed');
+  }
 
   Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: _headers(),
-      body: jsonEncode({
-        'email': email,
-        'password': password,
-      }),
+      body: jsonEncode({'email': email, 'password': password}),
     );
-
     return _handleResponse(response);
   }
 
@@ -45,11 +40,8 @@ class ApiService {
     final response = await http.post(
       Uri.parse('$baseUrl/auth/refresh'),
       headers: _headers(),
-      body: jsonEncode({
-        'refreshToken': refreshToken,
-      }),
+      body: jsonEncode({'refreshToken': refreshToken}),
     );
-
     return _handleResponse(response);
   }
 
@@ -58,45 +50,40 @@ class ApiService {
       Uri.parse('$baseUrl/auth/me'),
       headers: _headers(token: accessToken),
     );
-
     return _handleResponse(response);
   }
 
-  // ================= SEARCHES =================
+  Future<Map<String, dynamic>> deleteAccount(String token) async {
+    final response = await http.delete(
+      Uri.parse('$baseUrl/auth/me'),
+      headers: _headers(token: token),
+    );
+    return _handleResponse(response);
+  }
 
   Future<Map<String, dynamic>> getSearches(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/searches'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> createSearch(
-    String token,
-    Map<String, dynamic> body,
-  ) async {
+  Future<Map<String, dynamic>> createSearch(String token, Map<String, dynamic> body) async {
     final response = await http.post(
       Uri.parse('$baseUrl/searches'),
       headers: _headers(token: token),
       body: jsonEncode(body),
     );
-
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> updateSearch(
-    String token,
-    int searchId,
-    Map<String, dynamic> body,
-  ) async {
+  Future<Map<String, dynamic>> updateSearch(String token, int searchId, Map<String, dynamic> body) async {
     final response = await http.put(
       Uri.parse('$baseUrl/searches/$searchId'),
       headers: _headers(token: token),
       body: jsonEncode(body),
     );
-
     return _handleResponse(response);
   }
 
@@ -105,39 +92,26 @@ class ApiService {
       Uri.parse('$baseUrl/searches/$searchId'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
-
-  // ================= ALERTS =================
 
   Future<Map<String, dynamic>> getAlerts(String token) async {
     final response = await http.get(
       Uri.parse('$baseUrl/alerts'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> getAlertsBySearch(
-    String token,
-    int searchId,
-  ) async {
+  Future<Map<String, dynamic>> getAlertsBySearch(String token, int searchId) async {
     final response = await http.get(
       Uri.parse('$baseUrl/alerts/searches/$searchId'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> createAlert(
-    String token,
-    int searchId,
-    String ruleType,
-    double value,
-  ) async {
+  Future<Map<String, dynamic>> createAlert(String token, int searchId, String ruleType, double value) async {
     final response = await http.post(
       Uri.parse('$baseUrl/alerts'),
       headers: _headers(token: token),
@@ -147,7 +121,6 @@ class ApiService {
         'threshold_value': value,
       }),
     );
-
     return _handleResponse(response);
   }
 
@@ -156,42 +129,27 @@ class ApiService {
       Uri.parse('$baseUrl/alerts/$alertId'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
 
-  // ================= PRICES =================
-
-  Future<Map<String, dynamic>> getPriceHistory(
-    String token,
-    int searchId,
-  ) async {
+  Future<Map<String, dynamic>> getPriceHistory(String token, int searchId) async {
     final response = await http.get(
       Uri.parse('$baseUrl/prices/searches/$searchId'),
       headers: _headers(token: token),
     );
-
     return _handleResponse(response);
   }
 
-  Future<Map<String, dynamic>> addPriceHistory(
-    String token,
-    int searchId,
-    double price, {
-    String? source,
-    String? capturedAt,
-  }) async {
+  Future<Map<String, dynamic>> addPriceHistory(String token, int searchId, double price, {String? source, String? capturedAt}) async {
     final response = await http.post(
       Uri.parse('$baseUrl/prices/searches/$searchId'),
       headers: _headers(token: token),
       body: jsonEncode({
         'price': price,
         if (source != null && source.isNotEmpty) 'source': source,
-        if (capturedAt != null && capturedAt.isNotEmpty)
-          'captured_at': capturedAt,
+        if (capturedAt != null && capturedAt.isNotEmpty) 'captured_at': capturedAt,
       }),
     );
-
     return _handleResponse(response);
   }
 }

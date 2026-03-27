@@ -9,39 +9,59 @@ class AppearancePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final settings = context.watch<AppSettingsProvider>();
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
 
     final accentOptions = [
-  _AccentOption('Emerald', 'green', const Color(0xFF16A34A)),
-  _AccentOption('Ocean', 'blue', const Color(0xFF2563EB)),
-  _AccentOption('Sunset', 'orange', const Color(0xFFF97316)),
-  _AccentOption('Royal', 'purple', const Color(0xFF7C3AED)),
-  _AccentOption('Teal', 'teal', const Color(0xFF0F766E)),
-];
+      _AccentOption('Emerald', 'green', const Color(0xFF16A34A)),
+      _AccentOption('Ocean', 'blue', const Color(0xFF2563EB)),
+      _AccentOption('Sunset', 'orange', const Color(0xFFF97316)),
+      _AccentOption('Royal', 'purple', const Color(0xFF7C3AED)),
+      _AccentOption('Teal', 'teal', const Color(0xFF0F766E)),
+    ];
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Appearance'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: const Text('Appearance'), centerTitle: true),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           Text(
-            'Mode',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            'Display Mode',
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Choose how Skynova looks across the app.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withOpacity(0.68),
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          _ModeCard(
+            title: 'System Default',
+            subtitle: 'Match your device appearance automatically',
+            icon: Icons.phone_android_rounded,
+            selected: settings.themeMode == ThemeMode.system,
+            onTap: () {
+              context.read<AppSettingsProvider>().setThemeMode(
+                ThemeMode.system,
+              );
+              _showAppliedMessage(context, 'System appearance enabled');
+            },
           ),
           const SizedBox(height: 12),
-
           _ModeCard(
             title: 'Light Mode',
             subtitle: 'Bright and clean look',
             icon: Icons.light_mode_rounded,
             selected: settings.themeMode == ThemeMode.light,
-            onTap: () => context.read<AppSettingsProvider>().setThemeMode(
-                  ThemeMode.light,
-                ),
+            onTap: () {
+              context.read<AppSettingsProvider>().setThemeMode(ThemeMode.light);
+              _showAppliedMessage(context, 'Light mode applied');
+            },
           ),
           const SizedBox(height: 12),
           _ModeCard(
@@ -49,25 +69,26 @@ class AppearancePage extends StatelessWidget {
             subtitle: 'Modern low-light experience',
             icon: Icons.dark_mode_rounded,
             selected: settings.themeMode == ThemeMode.dark,
-            onTap: () => context.read<AppSettingsProvider>().setThemeMode(
-                  ThemeMode.dark,
-                ),
+            onTap: () {
+              context.read<AppSettingsProvider>().setThemeMode(ThemeMode.dark);
+              _showAppliedMessage(context, 'Dark mode applied');
+            },
           ),
 
           const SizedBox(height: 28),
 
           Text(
             'Accent Theme',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: theme.textTheme.titleMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Choose a color style for your app',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurface.withOpacity(0.65),
-                ),
+            'Choose the color style used for highlights, buttons, and active elements.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurface.withOpacity(0.68),
+            ),
           ),
           const SizedBox(height: 16),
 
@@ -77,19 +98,26 @@ class AppearancePage extends StatelessWidget {
             children: accentOptions.map((option) {
               final isSelected = settings.themeKey == option.key;
 
-              return GestureDetector(
-                onTap: () => context.read<AppSettingsProvider>().setThemeKey(option.key),
+              return InkWell(
+                borderRadius: BorderRadius.circular(18),
+                onTap: () {
+                  context.read<AppSettingsProvider>().setThemeKey(option.key);
+                  _showAppliedMessage(
+                    context,
+                    '${option.label} accent applied',
+                  );
+                },
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
                   width: 110,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(18),
                     border: Border.all(
                       color: isSelected
                           ? option.color
-                          : Theme.of(context).colorScheme.outline.withOpacity(0.18),
+                          : colorScheme.outline.withOpacity(0.18),
                       width: isSelected ? 2 : 1,
                     ),
                     boxShadow: [
@@ -102,7 +130,8 @@ class AppearancePage extends StatelessWidget {
                   ),
                   child: Column(
                     children: [
-                      Container(
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
                         height: 42,
                         width: 42,
                         decoration: BoxDecoration(
@@ -116,9 +145,10 @@ class AppearancePage extends StatelessWidget {
                       const SizedBox(height: 10),
                       Text(
                         option.label,
-                        style: const TextStyle(
+                        style: theme.textTheme.bodyMedium?.copyWith(
                           fontSize: 13,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
+                          color: colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -127,9 +157,42 @@ class AppearancePage extends StatelessWidget {
               );
             }).toList(),
           ),
+
+          const SizedBox(height: 28),
+
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: colorScheme.surface,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: colorScheme.outline.withOpacity(0.14)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.visibility_rounded, color: colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Your appearance changes should update across the app. If a screen still shows hard-to-read text, that page may still be using fixed colors and needs a theme-based update.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colorScheme.onSurface.withOpacity(0.72),
+                      height: 1.45,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  void _showAppliedMessage(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 
@@ -198,9 +261,10 @@ class _ModeCard extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
