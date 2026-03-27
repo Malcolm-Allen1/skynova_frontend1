@@ -20,8 +20,15 @@ class AuthProvider extends ChangeNotifier {
   String? get refreshToken => _refreshToken;
   String? get error => _error;
   Map<String, dynamic>? get user => _user;
-  String? get name =>
-      _user?['name']?.toString() ?? _user?['full_name']?.toString();
+  String? get name => _user?['name']?.toString() ?? _user?['full_name']?.toString();
+
+  Future<void> _clearSessionLocally() async {
+    _token = null;
+    _refreshToken = null;
+    _user = null;
+    await _authService.clearToken();
+    await _authService.clearRefreshToken();
+  }
 
   Future<void> loadSession() async {
     _isCheckingSession = true;
@@ -33,34 +40,31 @@ class AuthProvider extends ChangeNotifier {
       _refreshToken = await _authService.getRefreshToken();
 
       if (_token == null || _token!.isEmpty) {
-        _isCheckingSession = false;
-        notifyListeners();
+        await _clearSessionLocally();
         return;
       }
 
       try {
         final meResponse = await _apiService.getMe(_token!);
         final userData = meResponse['data'];
-
         if (userData is Map<String, dynamic>) {
           _user = userData;
         }
       } catch (e) {
         final refreshed = await tryRefreshToken();
-
-        if (refreshed) {
+        if (refreshed && _token != null && _token!.isNotEmpty) {
           final meResponse = await _apiService.getMe(_token!);
           final userData = meResponse['data'];
-
           if (userData is Map<String, dynamic>) {
             _user = userData;
           }
         } else {
-          await logout();
+          await _clearSessionLocally();
         }
       }
     } catch (e) {
-      _error = e.toString();
+      _error = null;
+      await _clearSessionLocally();
     } finally {
       _isCheckingSession = false;
       notifyListeners();
@@ -73,12 +77,19 @@ class AuthProvider extends ChangeNotifier {
     try {
       final meResponse = await _apiService.getMe(_token!);
       final userData = meResponse['data'];
-
       if (userData is Map<String, dynamic>) {
         _user = userData;
+        _error = null;
         notifyListeners();
       }
     } catch (e) {
+      if (e.toString().contains('SESSION_EXPIRED')) {
+        final refreshed = await tryRefreshToken();
+        if (refreshed) {
+          return loadUserProfile();
+        }
+        await _clearSessionLocally();
+      }
       _error = e.toString();
       notifyListeners();
     }
@@ -90,10 +101,10 @@ class AuthProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final response = await _apiService.login(email, password);
+      await _clearSessionLocally();
 
-      final accessToken =
-          response['data']?['accessToken'] ?? response['data']?['token'];
+      final response = await _apiService.login(email, password);
+      final accessToken = response['data']?['accessToken'] ?? response['data']?['token'];
       final refreshToken = response['data']?['refreshToken'];
 
       if (accessToken == null || accessToken.toString().isEmpty) {
@@ -105,14 +116,9 @@ class AuthProvider extends ChangeNotifier {
       _refreshToken = refreshToken?.toString();
 
       final userData = response['data']?['user'];
-      if (userData is Map<String, dynamic>) {
-        _user = userData;
-      } else {
-        _user = null;
-      }
+      _user = userData is Map<String, dynamic> ? userData : null;
 
       await _authService.saveToken(_token!);
-
       if (_refreshToken != null && _refreshToken!.isNotEmpty) {
         await _authService.saveRefreshToken(_refreshToken!);
       }
@@ -121,9 +127,11 @@ class AuthProvider extends ChangeNotifier {
         await loadUserProfile();
       }
 
+      _error = null;
       return true;
     } catch (e) {
-      _error = e.toString();
+      _error = e.toString().replaceFirst('Exception: ', '');
+      await _clearSessionLocally();
       return false;
     } finally {
       _isLoading = false;
@@ -133,17 +141,13 @@ class AuthProvider extends ChangeNotifier {
 
   Future<bool> tryRefreshToken() async {
     try {
-      final storedRefreshToken =
-          _refreshToken ?? await _authService.getRefreshToken();
-
+      final storedRefreshToken = _refreshToken ?? await _authService.getRefreshToken();
       if (storedRefreshToken == null || storedRefreshToken.isEmpty) {
         return false;
       }
 
       final response = await _apiService.refreshToken(storedRefreshToken);
-
-      final newAccessToken =
-          response['data']?['accessToken'] ?? response['data']?['token'];
+      final newAccessToken = response['data']?['accessToken'] ?? response['data']?['token'];
       final newRefreshToken = response['data']?['refreshToken'];
 
       if (newAccessToken == null || newAccessToken.toString().isEmpty) {
@@ -158,23 +162,29 @@ class AuthProvider extends ChangeNotifier {
         await _authService.saveRefreshToken(_refreshToken!);
       }
 
+      _error = null;
       notifyListeners();
       return true;
-    } catch (e) {
-      _error = e.toString();
+    } catch (_) {
+      await _clearSessionLocally();
       return false;
     }
   }
 
   Future<void> logout() async {
-    _token = null;
-    _refreshToken = null;
-    _user = null;
     _error = null;
+    await _clearSessionLocally();
+    notifyListeners();
+  }
 
-    await _authService.clearToken();
-    await _authService.clearRefreshToken();
+  Future<void> deleteAccount() async {
+    if (_token == null || _token!.isEmpty) {
+      throw Exception('No active session');
+    }
 
+    await _apiService.deleteAccount(_token!);
+    await _clearSessionLocally();
+    _error = null;
     notifyListeners();
   }
 }

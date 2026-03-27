@@ -29,15 +29,12 @@ class AppSettingsProvider extends ChangeNotifier {
     _phoneNumber = prefs.getString('phone_number') ?? '';
     _country = prefs.getString('country') ?? 'Jamaica';
 
-    switch (savedThemeMode) {
-      case 'light':
-        _themeMode = ThemeMode.light;
-        break;
-      case 'dark':
-        _themeMode = ThemeMode.dark;
-        break;
-      default:
-        _themeMode = ThemeMode.system;
+    if (savedThemeMode == 'light') {
+      _themeMode = ThemeMode.light;
+    } else if (savedThemeMode == 'dark') {
+      _themeMode = ThemeMode.dark;
+    } else {
+      _themeMode = ThemeMode.system;
     }
 
     notifyListeners();

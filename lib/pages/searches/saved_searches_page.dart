@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:skynova_frontend1/core/theme/app_theme.dart';
 import 'package:skynova_frontend1/pages/searches/search_details_page.dart';
-
 import '../../providers/auth_provider.dart';
 import '../../providers/search_provider.dart';
 import '../../widgets/search_card.dart';
@@ -16,236 +16,142 @@ class SavedSearchesPage extends StatefulWidget {
 
 class _SavedSearchesPageState extends State<SavedSearchesPage> {
   bool _hasTriedInitialLoad = false;
-  bool _isLoadingSearches = false;
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() => _tryInitialLoad());
-  }
-
-  Future<void> _tryInitialLoad() async {
-    if (!mounted || _hasTriedInitialLoad) return;
-
-    final authProvider = context.read<AuthProvider>();
-
-    if (authProvider.isCheckingSession) return;
-
-    _hasTriedInitialLoad = true;
-    await _loadSearches();
+    Future.microtask(_loadSearches);
   }
 
   Future<void> _loadSearches() async {
-    if (!mounted || _isLoadingSearches) return;
-
+    if (_hasTriedInitialLoad && !mounted) return;
     final authProvider = context.read<AuthProvider>();
     final token = authProvider.token;
-
-    if (authProvider.isCheckingSession) return;
     if (token == null || token.isEmpty) return;
-
-    _isLoadingSearches = true;
-
-    try {
-      await context.read<SearchProvider>().fetchSearches(token);
-    } catch (e) {
-      debugPrint('Error loading searches: $e');
-    } finally {
-      _isLoadingSearches = false;
-    }
-  }
-
-  Future<void> _refreshSearches() async {
     _hasTriedInitialLoad = true;
-    await _loadSearches();
+    await context.read<SearchProvider>().fetchSearches(token);
   }
 
-  Future<void> _openSearchForm({dynamic search}) async {
-    final token = context.read<AuthProvider>().token;
-
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SearchFormPage(search: search),
-      ),
-    );
-
-    if (!mounted) return;
-
-    if (token != null && token.isNotEmpty) {
-      await context.read<SearchProvider>().fetchSearches(token);
-    }
-
-    setState(() {});
-  }
-
-  Future<void> _deleteSearch(int searchId) async {
+  Future<void> _deleteSearch(int id) async {
     final token = context.read<AuthProvider>().token;
     if (token == null || token.isEmpty) return;
 
-    final confirmed = await showDialog<bool>(
+    final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-        ),
-        title: const Text('Delete Search'),
-        content: const Text(
-          'Are you sure you want to delete this saved search?',
-        ),
+        title: const Text('Remove search?'),
+        content: const Text('This will stop tracking the route and remove its saved search details.'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Remove')),
         ],
       ),
     );
 
-    if (confirmed != true) return;
+    if (confirm != true) return;
 
-    final success = await context.read<SearchProvider>().deleteSearch(
-          token: token,
-          id: searchId,
-        );
-
+    final success = await context.read<SearchProvider>().deleteSearch(token: token, id: id);
     if (!mounted) return;
 
-    final provider = context.read<SearchProvider>();
-
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? 'Search deleted successfully'
-              : (provider.error ?? 'Failed to delete search'),
-        ),
-      ),
+      SnackBar(content: Text(success ? 'Saved search removed' : (context.read<SearchProvider>().error ?? 'Failed to remove search'))),
     );
-
-    if (success) {
-      await _refreshSearches();
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final searchProvider = context.watch<SearchProvider>();
-
-    if (!authProvider.isCheckingSession &&
-        !_hasTriedInitialLoad &&
-        !_isLoadingSearches) {
-      Future.microtask(() => _tryInitialLoad());
-    }
-
-    if (authProvider.isCheckingSession) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (authProvider.token == null || authProvider.token!.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Saved Searches'),
-        ),
-        body: const Center(
-          child: Text('You are not logged in'),
-        ),
-      );
-    }
-
-    if (searchProvider.isLoading && searchProvider.searches.isEmpty) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    if (searchProvider.error != null && searchProvider.searches.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Saved Searches'),
-        ),
-        body: Center(
-          child: Text(searchProvider.error!),
-        ),
-      );
-    }
+    final provider = context.watch<SearchProvider>();
+    final searches = provider.searches;
 
     return Scaffold(
       appBar: AppBar(
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        title: const Text(
-          'Saved Searches',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-        backgroundColor: Theme.of(context).colorScheme.surface,
-        foregroundColor: Theme.of(context).colorScheme.onSurface,
-      ),
-      body: RefreshIndicator(
-        onRefresh: _refreshSearches,
-        child: searchProvider.searches.isEmpty
-            ? ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(24),
-                children: [
-                  const SizedBox(height: 100),
-                  const Icon(Icons.travel_explore, size: 72),
-                  const SizedBox(height: 24),
-                  const Center(
-                    child: Text(
-                      'No saved searches yet',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  const Center(
-                    child: Text(
-                      'Create a travel search to start tracking deals.',
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                ],
-              )
-            : ListView.builder(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
-                itemCount: searchProvider.searches.length,
-                itemBuilder: (context, index) {
-                  final search = searchProvider.searches[index];
-                  return SearchCard(
-                    search: search,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              SearchDetailPage(search: search),
-                        ),
-                      );
-                    },
-                    onEdit: () => _openSearchForm(search: search),
-                    onDelete: () => _deleteSearch(search.id),
-                  );
-                },
-              ),
+        title: const Text('Saved searches'),
+        actions: [
+          IconButton(onPressed: _loadSearches, icon: const Icon(Icons.refresh_rounded)),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openSearchForm(),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Search'),
+        backgroundColor: AppTheme.actionYellow,
+        foregroundColor: Colors.black,
+        onPressed: () async {
+          await Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchFormPage()));
+          if (mounted) _loadSearches();
+        },
+        icon: const Icon(Icons.add_rounded),
+        label: const Text('New search'),
+      ),
+      body: RefreshIndicator(
+        onRefresh: _loadSearches,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 110),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: AppTheme.cardBorder),
+              ),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Track the routes that matter most', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  SizedBox(height: 6),
+                  Text('Each saved search stores your origin, destination, travel dates, and budget so Skynova can watch for fresh deals.', style: TextStyle(color: AppTheme.textMuted, height: 1.4)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            if (provider.isLoading && searches.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 40),
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else if (searches.isEmpty)
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(18),
+                        decoration: BoxDecoration(color: const Color(0xFFEAF2FF), borderRadius: BorderRadius.circular(18)),
+                        child: const Icon(Icons.search_rounded, size: 34, color: AppTheme.trustBlue),
+                      ),
+                      const SizedBox(height: 14),
+                      const Text('No saved searches yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+                      const Text('Create a route to unlock price history, alerts, and real travel-style tracking.', textAlign: TextAlign.center, style: TextStyle(color: AppTheme.textMuted)),
+                      const SizedBox(height: 18),
+                      ElevatedButton(
+                        onPressed: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchFormPage()));
+                        },
+                        child: const Text('Create first search'),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...searches.map(
+                (search) => Padding(
+                  padding: const EdgeInsets.only(bottom: 14),
+                  child: SearchCard(
+                    search: search,
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => SearchDetailPage(search: search)));
+                    },
+                    onEdit: () async {
+                      await Navigator.push(context, MaterialPageRoute(builder: (_) => SearchFormPage(search: search)));
+                      if (mounted) _loadSearches();
+                    },
+                    onDelete: () => _deleteSearch(search.id),
+                  ),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
